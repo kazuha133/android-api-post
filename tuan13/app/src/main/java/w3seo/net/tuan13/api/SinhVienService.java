@@ -1,8 +1,6 @@
 package w3seo.net.tuan13.api;
 
 import android.content.Context;
-import android.net.Uri;
-import android.widget.Adapter;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
@@ -17,8 +15,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
-import w3seo.net.tuan13.MainActivity;
 import w3seo.net.tuan13.model.Sinhvien;
 import w3seo.net.tuan13.utils.Configure;
 
@@ -33,26 +32,9 @@ public class SinhVienService {
         this.Activity = context;
         this.requestQueue = Volley.newRequestQueue(Activity);
         this.adapter = adapter;
-
     }
 
-    public ArrayList<Sinhvien> getAllSinhVien(){
-
-        /// 1. Khoi tao response
-        Response.Listener<String> listener = new Response.Listener<String>() {
-            @Override
-            public void onResponse(String s) {
-                //khi co phan hoi 200 tu server
-            }
-        };
-
-        /// 2. khai bao listen cua ma loi
-        //Response.ErrorListener errorListener = new Response.ErrorListener() {
-          //  @Override
-            //public void onErrorResponse(VolleyError volleyError) {
-                //co loi server thi chay ham nay
-            //}
-        //};
+    public void getAllSinhVien(){
         ArrayList<Sinhvien> sinhviens = new ArrayList<>();
 
         // Lắng nghe kết quả trả về
@@ -60,7 +42,6 @@ public class SinhVienService {
             @Override
             public void onResponse(String response) {
                 try {
-                    sinhviens.clear();
                     // Server trả về một chuỗi có dạng mảng JSON, nên ta ép nó thành JSONArray rồi lặp trên Array để lấy ra từng JSONObject
                     JSONArray jsonArray = new JSONArray(response);
                     int len = jsonArray.length();
@@ -69,9 +50,12 @@ public class SinhVienService {
                         int ma = jsonObject.getInt("masv");
                         String ten = jsonObject.getString("tensv");
                         sinhviens.add(new Sinhvien(ma, ten));
-                        adapter.notifyDataSetChanged();
                     }
+                    adapter.clear();
+                    adapter.addAll(sinhviens);
+                    adapter.notifyDataSetChanged();
                 } catch (Exception ex) {
+                    Toast.makeText(Activity, "Lỗi parse JSON: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
                 }
             }
         };
@@ -82,35 +66,72 @@ public class SinhVienService {
             public void onErrorResponse(VolleyError error) {
                 Toast.makeText(
                         Activity,
-                        error.getMessage(),
+                        "Lỗi kết nối: " + (error.getMessage() != null ? error.getMessage() : "Không có kết nối"),
                         Toast.LENGTH_LONG
                 ).show();
             }
         };
 
-        /// 3. xay dung request
-        // Tao url đến service
-        //Uri.Builder builder = Uri.parse(Configure.URL).buildUpon();
-
-        // Chèn thêm tham số cho url, dùng trong phương thức $_GET
-        //builder.appendQueryParameter("action", "getall");
-        //String url = builder.build().toString();
-
-        String url = Configure.URL + "/ws/api.php?action=getall";
-
-        StringRequest stringRequest = new StringRequest(Request.Method.GET,url,listener,errorListener);
-        requestQueue.add(stringRequest);
+        // Tạo URL để lấy danh sách sinh viên
+        String url = Configure.URL + "?action=getall";
 
         StringRequest request = new StringRequest(
-                Request.Method.GET, // nếu dùng $_POST thì đổi thành POST
+                Request.Method.GET,
                 url,
                 responseListener,
                 errorListener
         );
 
-
         requestQueue.add(request);
+    }
 
-        return sinhviens;
+    public void addSinhVien(Sinhvien sv, Response.Listener<String> listener, Response.ErrorListener errorListener) {
+        String url = Configure.URL;
+        
+        StringRequest request = new StringRequest(Request.Method.POST, url, listener, errorListener) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("action", "insert");
+                params.put("masv", String.valueOf(sv.getMaSV()));
+                params.put("tensv", sv.getTenSV());
+                return params;
+            }
+        };
+        
+        requestQueue.add(request);
+    }
+
+    public void updateSinhVien(Sinhvien sv, Response.Listener<String> listener, Response.ErrorListener errorListener) {
+        String url = Configure.URL;
+        
+        StringRequest request = new StringRequest(Request.Method.POST, url, listener, errorListener) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("action", "update");
+                params.put("masv", String.valueOf(sv.getMaSV()));
+                params.put("tensv", sv.getTenSV());
+                return params;
+            }
+        };
+        
+        requestQueue.add(request);
+    }
+
+    public void deleteSinhVien(int maSv, Response.Listener<String> listener, Response.ErrorListener errorListener) {
+        String url = Configure.URL;
+        
+        StringRequest request = new StringRequest(Request.Method.POST, url, listener, errorListener) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("action", "delete");
+                params.put("masv", String.valueOf(maSv));
+                return params;
+            }
+        };
+        
+        requestQueue.add(request);
     }
 }

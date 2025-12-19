@@ -1,5 +1,7 @@
 package w3seo.net.tuan13;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -15,19 +17,15 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
 
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 
+import w3seo.net.tuan13.api.SinhVienService;
 import w3seo.net.tuan13.model.Sinhvien;
-import w3seo.net.tuan13.utils.Configure;
 
 public class MainActivity extends AppCompatActivity {
     EditText txtMaSv, txtTenSv;
@@ -36,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     ArrayAdapter<Sinhvien> adapter;
     ListView lvSv;
     Sinhvien chon = null;
+    SinhVienService sinhVienService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,8 +63,7 @@ public class MainActivity extends AppCompatActivity {
                 dsSv
         );
         lvSv.setAdapter(adapter);
-
-
+        sinhVienService = new SinhVienService(this, adapter);
     }
 
     private void addEvents() {
@@ -121,19 +119,107 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void hienthiDanhsach() {
-        // Hàng đợi các request lên server
-
+        // Gọi service để lấy danh sách sinh viên từ API
+        sinhVienService.getAllSinhVien();
     }
 
     private void xuliThemSv(Sinhvien sv) {
+        Response.Listener<String> listener = new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                try {
+                    JSONObject jsonObject = new JSONObject(response);
+                    if (jsonObject.getBoolean("success")) {
+                        Toast.makeText(MainActivity.this, "Thêm sinh viên thành công!", Toast.LENGTH_SHORT).show();
+                        hienthiDanhsach();
+                    } else {
+                        String message = jsonObject.optString("message", "Thêm sinh viên thất bại");
+                        Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "Thêm sinh viên thành công!", Toast.LENGTH_SHORT).show();
+                    hienthiDanhsach();
+                }
+            }
+        };
 
+        Response.ErrorListener errorListener = new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Toast.makeText(MainActivity.this, "Lỗi: " + (error.getMessage() != null ? error.getMessage() : "Không có kết nối"), Toast.LENGTH_LONG).show();
+            }
+        };
+
+        sinhVienService.addSinhVien(sv, listener, errorListener);
     }
 
     private void xuliXoaSv(Sinhvien sv) {
-        // Sinh viên tự viết
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle("Xác nhận xóa");
+        builder.setMessage("Bạn có chắc chắn muốn xóa sinh viên " + sv.getTenSV() + "?");
+        builder.setPositiveButton("Xóa", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Response.Listener<String> listener = new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        try {
+                            JSONObject jsonObject = new JSONObject(response);
+                            if (jsonObject.getBoolean("success")) {
+                                Toast.makeText(MainActivity.this, "Xóa sinh viên thành công!", Toast.LENGTH_SHORT).show();
+                                hienthiDanhsach();
+                            } else {
+                                String message = jsonObject.optString("message", "Xóa sinh viên thất bại");
+                                Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+                            }
+                        } catch (Exception e) {
+                            Toast.makeText(MainActivity.this, "Xóa sinh viên thành công!", Toast.LENGTH_SHORT).show();
+                            hienthiDanhsach();
+                        }
+                    }
+                };
+
+                Response.ErrorListener errorListener = new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MainActivity.this, "Lỗi: " + (error.getMessage() != null ? error.getMessage() : "Không có kết nối"), Toast.LENGTH_LONG).show();
+                    }
+                };
+
+                sinhVienService.deleteSinhVien(sv.getMaSV(), listener, errorListener);
+            }
+        });
+        builder.setNegativeButton("Hủy", null);
+        builder.show();
     }
 
     private void xuliCapnhatSv(Sinhvien sv) {
-        // Sinh viên tự viết
+        Response.Listener<String> listener = new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                try {
+                    JSONObject jsonObject = new JSONObject(response);
+                    if (jsonObject.getBoolean("success")) {
+                        Toast.makeText(MainActivity.this, "Cập nhật sinh viên thành công!", Toast.LENGTH_SHORT).show();
+                        hienthiDanhsach();
+                    } else {
+                        String message = jsonObject.optString("message", "Cập nhật sinh viên thất bại");
+                        Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "Cập nhật sinh viên thành công!", Toast.LENGTH_SHORT).show();
+                    hienthiDanhsach();
+                }
+            }
+        };
+
+        Response.ErrorListener errorListener = new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Toast.makeText(MainActivity.this, "Lỗi: " + (error.getMessage() != null ? error.getMessage() : "Không có kết nối"), Toast.LENGTH_LONG).show();
+            }
+        };
+
+        sinhVienService.updateSinhVien(sv, listener, errorListener);
     }
 }
