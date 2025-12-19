@@ -72,15 +72,19 @@ public class SinhVienService {
             }
         };
 
-        // Tạo URL để lấy danh sách sinh viên
-        String url = Configure.URL + "?action=getall";
-
         StringRequest request = new StringRequest(
-                Request.Method.GET,
-                url,
+                Request.Method.POST,
+                Configure.URL,
                 responseListener,
                 errorListener
-        );
+        ) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("action", "getall");
+                return params;
+            }
+        };
 
         requestQueue.add(request);
     }
